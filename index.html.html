@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Little Secret</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Alecrim&family=Caveat:wght@700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+        .font-dancing {
+            font-family: 'Alecrim', cursive;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+        .heart {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            opacity: 0.4;
+            animation: rise 15s infinite ease-in;
+        }
+        .heart::before,
+        .heart::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 20px 20px 0 0;
+            background: #f472b6; /* pink-400 */
+        }
+        .heart::before {
+            transform: rotate(-45deg);
+        }
+        .heart::after {
+            transform: rotate(45deg);
+            left: 8px;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0.4;
+            }
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+        .minecraft-heart {
+            display: grid;
+            grid-template-columns: repeat(7, 6px);
+            grid-auto-rows: 6px;
+        }
+        .pixel {
+            background-color: #ff0000; /* red-500 */
+            box-shadow: inset 0 0 0 1px #7f1d1d; /* red-900 like border */
+        }
+
+        /* --- New Scrapbook Gallery Styles --- */
+        #galleryScreen {
+            transition: opacity 1s ease-in-out;
+            background-color: #fffaf0; /* floralwhite - soft paper color */
+        }
+        #galleryGrid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            padding: 3rem 1rem;
+        }
+        .gallery-item {
+            cursor: pointer;
+            background: white;
+            padding: 10px 10px 20px 10px; /* Polaroid style padding */
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            width: clamp(200px, 20vw, 250px);
+        }
+        .gallery-item img {
+            object-fit: cover;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1/1;
+        }
+        .gallery-item p {
+            font-family: 'Caveat', cursive;
+            color: #57534e; /* stone-600 */
+            text-align: center;
+            font-size: 1.75rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Give each photo a unique, random-looking rotation */
+        .gallery-item:nth-child(6n+1) { transform: rotate(-5deg); }
+        .gallery-item:nth-child(6n+2) { transform: rotate(3deg) translateY(8px); }
+        .gallery-item:nth-child(6n+3) { transform: rotate(6deg); }
+        .gallery-item:nth-child(6n+4) { transform: rotate(-2deg) translateY(-5px); }
+        .gallery-item:nth-child(6n+5) { transform: rotate(4deg); }
+        .gallery-item:nth-child(6n+6) { transform: rotate(-4deg) translateY(5px); }
+        
+        .gallery-item:hover {
+            transform: scale(1.15) rotate(0deg) !important; /* Override rotation on hover */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        .gallery-item.playing {
+            box-shadow: 0 0 25px 8px #f9a8d4; /* pink-300 glow */
+            transform: scale(1.2) rotate(0deg) !important;
+            z-index: 11;
+        }
+    </style>
+</head>
+<body class="bg-pink-50 flex items-center justify-center h-screen">
+    <div class="background-hearts" id="hearts-container"></div>
+
+    <div id="mainContent" class="z-10 relative flex flex-col items-center transition-opacity duration-1000">
+        <!-- Minecraft Hearts -->
+        <div id="minecraft-hearts-container" class="flex space-x-2 mb-4 transition-opacity duration-500"></div>
+
+        <div id="loginBox" class="w-full max-w-md p-8 space-y-6 bg-white bg-opacity-80 backdrop-blur-md rounded-2xl shadow-2xl text-center relative transition-opacity duration-500">
+            <!-- Login Form View -->
+            <div id="loginForm">
+                <h1 class="text-4xl font-bold text-gray-800 font-dancing">I AM YOUR ?</h1>
+                <div class="mt-6">
+                    <input type="password" id="secretAnswer" placeholder="tell??" class="w-full px-4 py-3 text-gray-700 bg-white border border-pink-200 rounded-lg focus:ring-pink-500 focus:border-pink-500 transition">
+                </div>
+                 <p id="errorMessage" class="text-red-500 text-sm mt-2 h-4"></p>
+                <button onclick="checkAnswer()" class="w-full px-4 py-3 mt-4 font-semibold text-white bg-pink-500 rounded-lg hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition transform hover:scale-105">
+                    love You
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Locked Screen View -->
+    <div id="lockedScreen" class="hidden opacity-0 z-20 absolute inset-0 bg-gray-900 bg-opacity-95 flex flex-col items-center justify-center text-white text-center p-8 transition-opacity duration-500">
+        <h1 class="text-4xl font-bold font-dancing">Too many wrong tries...</h1>
+        <p class="mt-4 text-lg">Please close the page.</p>
+    </div>
+
+    <!-- Gallery Screen View -->
+    <div id="galleryScreen" class="hidden opacity-0 z-20 absolute inset-0 w-full h-full p-4 md:p-8 overflow-y-auto">
+         <h1 class="text-5xl md:text-7xl font-bold text-black-500 font-Normal-cand stroke-white border-white mb-4">MY GALLERY</h1>
+         <p class="text-center text-gray-500 text-lg mb-8"></p>
+        <div id="galleryGrid">
+            <!-- Gallery items will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+
+    <script>
+        // --- IMPORTANT: CUSTOMIZE THESE VALUES! ---
+        const SECRET_ANSWER = "Pasandida mard"; // Case-insensitive
+        
+        // --- CUSTOMIZE GALLERY: Add your images and song titles here ---
+        const galleryData = [
+            {
+                imageUrl: 'IMG_1479.JPG', // Replace with your own image URL or base64 data
+                songTitle: 'Mah Babe',
+                audioSrc: "audio 1 .mp3", // Optional: Add audio file URL or base64 data
+                control: "autoplay"
+            },
+            {
+                imageUrl: 'IMG_1484.JPG',// Replace with your own image URL or base64 data
+                songTitle: 'BRA bracelet hehe dedo',
+            
+            },
+            {
+                imageUrl: 'IMG_1493.JPG',// Replace with your own image URL or base64 data
+                songTitle: 'U mah sunshine',
+                
+            },
+            {
+                imageUrl: 'IMG_1495.JPG', // Replace with your own image URL or base64 data
+                songTitle: 'Forever & Always',
+               
+            },
+            {
+                imageUrl: 'IMG_1497.JPG', // Replace with your own image URL or base64 data
+                songTitle: 'woohooo',
+            
+            },
+            {
+                imageUrl: 'IMG_1499.JPG', // Replace with your own image URL or base64 data
+                songTitle: 'U are mt baebie',
+                
+            },
+            {
+                imageUrl: 'IMG_1503.JPG', // Replace with your own image URL or base64 data
+                songTitle: 'I LOVE YOu SO',
+                
+            },
+            {
+                imageUrl: 'IMG_1507.JPG', // Replace with your own image URL or base64 data
+                songTitle: 'Thinking Of You',
+
+            },
+            {
+                imageUrl: 'IMG_1508.JPG',   // Replace with your own image URL or base64 data
+                songTitle: 'Always & Forever',
+               
+            },
+            {
+                imageUrl: 'IMG_1509.JPG',   // Replace with your own image URL or base64 data
+                songTitle: 'Just For You',
+            
+            },
+        ];
+        // ------------------------------------------
+
+        const mainContent = document.getElementById('mainContent');
+        const errorMessage = document.getElementById('errorMessage');
+        const answerInput = document.getElementById('secretAnswer');
+        const lockedScreen = document.getElementById('lockedScreen');
+        const galleryScreen = document.getElementById('galleryScreen');
+        const galleryGrid = document.getElementById('galleryGrid');
+
+        let wrongAttempts = 0;
+        let synth, currentSequence;
+        let currentAudio = null;
+
+        function checkAnswer() {
+            const userAnswer = answerInput.value;
+            
+            if (userAnswer.toLowerCase() === SECRET_ANSWER.toLowerCase()) {
+                // Correct answer: fade out main content and fade in gallery
+                mainContent.classList.add('opacity-0');
+                
+                setTimeout(() => {
+                    mainContent.classList.add('hidden');
+                    galleryScreen.classList.remove('hidden');
+                    setTimeout(() => galleryScreen.classList.add('opacity-100'), 50);
+                }, 1000);
+
+            } else {
+                wrongAttempts++;
+                const hearts = document.querySelectorAll('#minecraft-hearts-container .minecraft-heart');
+                if (wrongAttempts <= hearts.length) {
+                    hearts[hearts.length - wrongAttempts].style.visibility = 'hidden';
+                }
+
+                if (wrongAttempts >= 5) {
+                    errorMessage.innerText = "No attempts left.";
+                    answerInput.disabled = true;
+                    document.querySelector('button').disabled = true;
+
+                    setTimeout(() => {
+                        mainContent.classList.add('opacity-0');
+                        lockedScreen.classList.remove('hidden');
+                        setTimeout(() => lockedScreen.classList.add('opacity-100'), 50);
+                    }, 1000);
+                } else {
+                    errorMessage.innerText = "That's not it, try again!";
+                    answerInput.classList.add('border-red-500');
+                    answerInput.value = '';
+
+                    setTimeout(() => {
+                        errorMessage.innerText = "";
+                        answerInput.classList.remove('border-red-500');
+                    }, 2000);
+                }
+            }
+        }
+
+        answerInput.addEventListener('keyup', (event) => {
+            if (event.key === "Enter") checkAnswer();
+        });
+
+        function playSong(melody, targetElement) {
+             if (Tone.context.state !== 'running') {
+                Tone.context.resume();
+            }
+            // Stop any currently playing song
+            if (currentSequence) {
+                currentSequence.stop();
+                document.querySelectorAll('.gallery-item.playing').forEach(el => el.classList.remove('playing'));
+            }
+            
+            if (!synth) {
+                synth = new Tone.Synth().toDestination();
+            }
+
+            currentSequence = new Tone.Sequence((time, note) => {
+                synth.triggerAttackRelease(note, "8n", time);
+            }, melody, "4n").start(0);
+
+            Tone.Transport.start();
+            targetElement.classList.add('playing');
+
+            currentSequence.onstop = () => {
+                 targetElement.classList.remove('playing');
+                 Tone.Transport.stop();
+            };
+        }
+
+        // --- Create Minecraft Hearts ---
+        const minecraftHeartsContainer = document.getElementById('minecraft-hearts-container');
+        const heartPattern = [
+            [0, 1, 1, 0, 1, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0], // This row makes the container square
+        ];
+        function createMinecraftHeart() {
+            const heart = document.createElement('div');
+            heart.className = 'minecraft-heart';
+            heartPattern.forEach(row => {
+                row.forEach(pixelValue => {
+                    const pixel = document.createElement('div');
+                    if (pixelValue === 1) {
+                        pixel.className = 'pixel';
+                    }
+                    heart.appendChild(pixel);
+                });
+            });
+            return heart;
+        }
+        for (let i = 0; i < 5; i++) { minecraftHeartsContainer.appendChild(createMinecraftHeart()); }
+
+        // --- Create background hearts ---
+        const heartsContainer = document.getElementById('hearts-container');
+        for (let i = 0; i < 20; i++) {
+            const heart = document.createElement('div');
+            heart.className = 'heart';
+            heart.style.left = `${Math.random() * 100}vw`;
+            heart.style.animationDelay = `${Math.random() * 15}s`;
+            heart.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
+            heartsContainer.appendChild(heart);
+        }
+        
+        // --- Populate Gallery ---
+        galleryData.forEach(item => {
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
+            galleryItem.innerHTML = `
+                <img src="${item.imageUrl}" alt="Memory" class="rounded-sm">
+                <p>${item.songTitle}</p>
+            `;
+            galleryItem.addEventListener('click', () => {
+                // Stop previous audio if playing
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    document.querySelectorAll('.gallery-item.playing').forEach(el => el.classList.remove('playing'));
+                }
+                // Play new audio if available
+                if (item.audioSrc) {
+                    currentAudio = new Audio(item.audioSrc);
+                    currentAudio.play();
+                    galleryItem.classList.add('playing');
+                    currentAudio.onended = () => {
+                        galleryItem.classList.remove('playing');
+                    };
+                }
+            });
+            galleryGrid.appendChild(galleryItem);
+        });
+
+    </script>
+</body>
+</html>
+
+
+
